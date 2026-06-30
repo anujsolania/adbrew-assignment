@@ -5,6 +5,9 @@ import { todoService } from './services/api';
 export function App() {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // Fetch todos when component mounts
   useEffect(() => {
@@ -12,11 +15,15 @@ export function App() {
   }, []);
 
   const fetchTodos = async () => {
+    setLoading(true);
+    setError('');
     try {
       const data = await todoService.fetchTodos();
       setTodos(data);
-    } catch (error) {
-      console.error('Error fetching todos:', error);
+    } catch (err) {
+      setError(err.message || 'Failed to load todos');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -24,12 +31,16 @@ export function App() {
     e.preventDefault();
     if (!newTodo.trim()) return;
 
+    setSubmitting(true);
+    setError('');
     try {
       await todoService.createTodo(newTodo);
       setNewTodo('');
-      fetchTodos(); // Refresh the list
-    } catch (error) {
-      console.error('Error creating todo:', error);
+      await fetchTodos(); // Refresh the list
+    } catch (err) {
+      setError(err.message || 'Failed to create todo');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -37,7 +48,11 @@ export function App() {
     <div className="App">
       <div>
         <h1>List of TODOs</h1>
-        {todos.length === 0 ? (
+        {error && <div style={{ color: '#d9534f', margin: '10px 0', fontWeight: 'bold' }}>⚠️ {error}</div>}
+        
+        {loading ? (
+          <p>Loading todos...</p>
+        ) : todos.length === 0 ? (
           <p>No todos yet. Create one below!</p>
         ) : (
           <ul>
@@ -58,10 +73,13 @@ export function App() {
               value={newTodo}
               onChange={(e) => setNewTodo(e.target.value)}
               placeholder="Enter todo description..."
+              disabled={submitting}
             />
           </div>
           <div style={{ marginTop: '5px' }}>
-            <button type="submit">Add ToDo!</button>
+            <button type="submit" disabled={submitting || !newTodo.trim()}>
+              {submitting ? 'Adding...' : 'Add ToDo!'}
+            </button>
           </div>
         </form>
       </div>

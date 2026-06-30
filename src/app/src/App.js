@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { todoService } from './services/api';
 
 export function App() {
   const [todos, setTodos] = useState([]);
@@ -12,8 +13,7 @@ export function App() {
 
   const fetchTodos = async () => {
     try {
-      const response = await fetch('http://localhost:8000/todos/');
-      const data = await response.json();
+      const data = await todoService.fetchTodos();
       setTodos(data);
     } catch (error) {
       console.error('Error fetching todos:', error);
@@ -25,20 +25,9 @@ export function App() {
     if (!newTodo.trim()) return;
 
     try {
-      const response = await fetch('http://localhost:8000/todos/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ description: newTodo }),
-      });
-
-      if (response.ok) {
-        setNewTodo('');
-        fetchTodos(); // Refresh the list
-      } else {
-        console.error('Failed to create todo');
-      }
+      await todoService.createTodo(newTodo);
+      setNewTodo('');
+      fetchTodos(); // Refresh the list
     } catch (error) {
       console.error('Error creating todo:', error);
     }

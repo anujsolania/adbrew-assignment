@@ -48,7 +48,7 @@ export function App() {
     <div className="App">
       <div>
         <h1>List of TODOs</h1>
-        {error && <div style={{ color: '#d9534f', margin: '10px 0', fontWeight: 'bold' }}>⚠️ {error}</div>}
+        {error && <div className="error-banner">⚠️ {error}</div>}
         
         {loading ? (
           <p>Loading todos...</p>

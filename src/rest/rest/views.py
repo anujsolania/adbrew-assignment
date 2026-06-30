@@ -4,32 +4,30 @@ from rest_framework.response import Response
 from rest_framework import status
 import json, logging, os
 from pymongo import MongoClient
+from .services import TodoRepository
 
 mongo_uri = 'mongodb://' + os.environ["MONGO_HOST"] + ':' + os.environ["MONGO_PORT"]
 db = MongoClient(mongo_uri)['test_db']
+repository = TodoRepository(db)
 
 class TodoListView(APIView):
 
     def get(self, request):
-        # Fetch all todo documents from the 'todos' collection
-        todos_cursor = db['todos'].find()
-        todos_list = list(todos_cursor)
-        
-        # Convert MongoDB ObjectId to string for JSON serialization
-        for todo in todos_list:
-            todo['_id'] = str(todo['_id'])
-            
-        return Response(todos_list, status=status.HTTP_200_OK)
+        try:
+            todos = repository.get_all()
+            return Response(todos, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def post(self, request):
-        # Get the todo description from the request data
-        description = request.data.get('description')
+        description = request.data.get('description', '').strip()
         
         if not description:
-            return Response({'error': 'Description is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Description cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Insert the new todo into MongoDB
-        db['todos'].insert_one({'description': description})
-        
-        return Response({'message': 'Todo created successfully'}, status=status.HTTP_201_CREATED)
+        try:
+            repository.create(description)
+            return Response({'message': 'Todo created successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
